@@ -1,4 +1,5 @@
 package visualizer;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.applet.*;
@@ -14,6 +15,7 @@ import java.io.*;
 
 public final class AnimCube extends Applet implements Runnable, MouseListener, MouseMotionListener {
 	private static final long serialVersionUID = 1L;
+	// external configuration
 	private final Hashtable<String, String> config = new Hashtable<String, String>();
 	// background colors
 	private Color bgColor;
@@ -488,7 +490,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 	public String getParameter(String name) {
 		String parameter = super.getParameter(name);
 		if (parameter == null)
-			return config.get(name);
+			return (String) config.get(name);
 		return parameter;
 	}
 
@@ -1180,7 +1182,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 			if (natural) // compact cube
 				fixBlock(eye, eyeX, eyeY, cubeBlocks, 3); // draw cube and fill drag areas
 			else { // in twisted state
-					// compute top observer
+				// compute top observer
 				double cosA = Math.cos(originalAngle + currentAngle);
 				double sinA = Math.sin(originalAngle + currentAngle) * rotSign[twistedLayer];
 				for (int i = 0; i < 3; i++) {
@@ -1312,8 +1314,6 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 	private final double[][] cooY = new double[6][4];
 	private static final double[][] border = { { 0.10, 0.10 }, { 0.90, 0.10 }, { 0.90, 0.90 }, { 0.10, 0.90 } };
 	private static final int[][] factors = { { 0, 0 }, { 0, 1 }, { 1, 1 }, { 1, 0 } };
-	private final double[] faceShiftX = new double[6];
-	private final double[] faceShiftY = new double[6];
 	private final double[] tempNormal = new double[3];
 
 	private void fixBlock(double[] eye, double[] eyeX, double[] eyeY, int[][][] blocks, int mode) {
