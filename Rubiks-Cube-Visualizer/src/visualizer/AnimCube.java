@@ -3,7 +3,6 @@ package visualizer;
 import java.awt.*;
 import java.awt.event.*;
 import java.applet.*;
-import java.util.Hashtable;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.io.*;
@@ -13,163 +12,71 @@ import java.io.*;
  * @version 3.5b
  */
 
-public final class AnimCube extends Applet implements Runnable, MouseListener, MouseMotionListener {
+public final class AnimCube extends Applet implements MouseListener, MouseMotionListener, Constants {
 	private static final long serialVersionUID = 1L;
-	// external configuration
-	private final Hashtable<String, String> config = new Hashtable<String, String>();
 	// background colors
 	private Color bgColor;
 	private Color bgColor2;
 	private Color hlColor;
 	private Color textColor;
-	private Color buttonBgColor;
-	// cube colors
-	private final Color[] colors = new Color[24];
-	// cube facelets
-	private final int[][] cube = new int[6][9];
-	private final int[][] initialCube = new int[6][9];
-	// normal vectors
-	private static final double[][] faceNormals = { { 0.0, -1.0, 0.0 }, // U
-			{ 0.0, 1.0, 0.0 }, // D
-			{ 0.0, 0.0, -1.0 }, // F
-			{ 0.0, 0.0, 1.0 }, // B
-			{ -1.0, 0.0, 0.0 }, // L
-			{ 1.0, 0.0, 0.0 } // R
-	};
-	// vertex co-ordinates
-	private static final double[][] cornerCoords = { { -1.0, -1.0, -1.0 }, // UFL
-			{ 1.0, -1.0, -1.0 }, // UFR
-			{ 1.0, -1.0, 1.0 }, // UBR
-			{ -1.0, -1.0, 1.0 }, // UBL
-			{ -1.0, 1.0, -1.0 }, // DFL
-			{ 1.0, 1.0, -1.0 }, // DFR
-			{ 1.0, 1.0, 1.0 }, // DBR
-			{ -1.0, 1.0, 1.0 } // DBL
-	};
-	// vertices of each face
-	private static final int[][] faceCorners = { { 0, 1, 2, 3 }, // U: UFL UFR UBR UBL
-			{ 4, 7, 6, 5 }, // D: DFL DBL DBR DFR
-			{ 0, 4, 5, 1 }, // F: UFL DFL DFR UFR
-			{ 2, 6, 7, 3 }, // B: UBR DBR DBL UBL
-			{ 0, 3, 7, 4 }, // L: UFL UBL DBL DFL
-			{ 1, 5, 6, 2 } // R: UFR DFR DBR UBR
-	};
-	// corresponding corners on the opposite face
-	private static final int[][] oppositeCorners = { { 0, 3, 2, 1 }, // U->D
-			{ 0, 3, 2, 1 }, // D->U
-			{ 3, 2, 1, 0 }, // F->B
-			{ 3, 2, 1, 0 }, // B->F
-			{ 0, 3, 2, 1 }, // L->R
-			{ 0, 3, 2, 1 }, // R->L
-	};
-	// faces adjacent to each face
-	private static final int[][] adjacentFaces = { { 2, 5, 3, 4 }, // U: F R B L
-			{ 4, 3, 5, 2 }, // D: L B R F
-			{ 4, 1, 5, 0 }, // F: L D R U
-			{ 5, 1, 4, 0 }, // B: R D L U
-			{ 0, 3, 1, 2 }, // L: U B D F
-			{ 2, 1, 3, 0 } // R: F D B U
-	};
+	private static Color buttonBgColor;
 	// current twisted layer
-	private int twistedLayer;
-	private int twistedMode;
+	private static int twistedLayer;
+	private static int twistedMode;
 	// directions of facelet cycling for all faces
 	private static final int[] faceTwistDirs = { 1, 1, -1, -1, -1, -1 };
-	// initial observer co-ordinate axes (view)
-	private final double[] eye = { 0.0, 0.0, -1.0 };
-	private final double[] eyeX = { 1.0, 0.0, 0.0 }; // (sideways)
-	private final double[] eyeY = new double[3]; // (vertical)
-	private final double[] initialEye = new double[3];
-	private final double[] initialEyeX = new double[3];
-	private final double[] initialEyeY = new double[3];
 	// angle of rotation of the twistedLayer
-	private double currentAngle; // edited angle of twisted layer
-	private double originalAngle; // angle of twisted layer
+	private static double currentAngle; // edited angle of twisted layer
+	private static double originalAngle; // angle of twisted layer
 	// animation speed
-	private int speed;
-	private int doubleSpeed;
+	public static int speed;
+	private static int doubleSpeed;
 	// current state of the program
-	private boolean natural = true; // cube is compact, no layer is twisted
+	private static boolean natural = true; // cube is compact, no layer is twisted
 	private boolean toTwist; // layer can be twisted
-	private boolean interrupted; // thread was interrupted
-	private boolean restarted; // animation was stopped
-	private boolean mirrored; // mirroring of the cube view
+	private static boolean mirrored; // mirroring of the cube view
 	private boolean editable; // editation of the cube with a mouse
-	private boolean twisting; // a user twists a cube layer
-	private boolean spinning; // an animation twists a cube layer
-	private boolean animating; // animation run
+	private static boolean twisting; // a user twists a cube layer
+	private static boolean spinning; // an animation twists a cube layer
 	private boolean dragging; // progress bar is controlled
-	private boolean demo; // demo mode
+	public static boolean demo; // demo mode
 	private int persp; // perspective deformation
 	private double scale; // cube scale
 	private int align; // cube alignment (top, center, bottom)
 	private boolean hint;
 	private double faceShift;
 	// move sequence data
-	private int[][] move;
-	private int[][] demoMove;
-	private int curMove;
-	private int movePos;
-	private int moveDir;
-	private boolean moveOne;
-	private boolean moveAnimated;
-	private int metric;
+	public static int[][] move;
+	public static int[][] demoMove;
+	public static int curMove;
+	public static int movePos;
+	public static int moveDir;
+	public static boolean moveOne;
+	public static boolean moveAnimated;
+	public static int metric;
 	private String[] infoText;
-	private int curInfoText;
+	public static int curInfoText;
 	// state of buttons
-	private int buttonBar; // button bar mode
-	private int buttonHeight;
-	private boolean drawButtons = true;
+	private static int buttonBar; // button bar mode
+	private static int buttonHeight;
+	public static boolean drawButtons = true;
 	private boolean pushed;
-	private int buttonPressed = -1;
+	private static int buttonPressed = -1;
 	private int progressHeight = 6;
 	private int textHeight;
 	private int moveText;
 	private boolean outlined = true;
-	// transformation tables for compatibility with Lars's applet
-	private static final int[] posFaceTransform = { 3, 2, 0, 5, 1, 4 };
-	private static final int[][] posFaceletTransform = { { 6, 3, 0, 7, 4, 1, 8, 5, 2 }, // B +27
-			{ 2, 5, 8, 1, 4, 7, 0, 3, 6 }, // F +18
-			{ 0, 1, 2, 3, 4, 5, 6, 7, 8 }, // U +0
-			{ 0, 1, 2, 3, 4, 5, 6, 7, 8 }, // R +45
-			{ 6, 3, 0, 7, 4, 1, 8, 5, 2 }, // D +9
-			{ 0, 1, 2, 3, 4, 5, 6, 7, 8 } // L +36
-	};
-	// buffer to store hexa-digits
-	private final int[] hex = new int[6];
+	//Animation Thread
+	static AnimationThread thread = null;
 
 	public void init() {
 		// register to receive all mouse events
 		addMouseListener(this);
 		addMouseMotionListener(this);
-		// setup colors
-		colors[0] = new Color(255, 128, 64); // 0 - light orange
-		colors[1] = new Color(255, 0, 0); // 1 - pure red
-		colors[2] = new Color(0, 255, 0); // 2 - pure green
-		colors[3] = new Color(0, 0, 255); // 3 - pure blue
-		colors[4] = new Color(153, 153, 153); // 4 - white grey
-		colors[5] = new Color(170, 170, 68); // 5 - yellow grey
-		colors[6] = new Color(187, 119, 68); // 6 - orange grey
-		colors[7] = new Color(153, 68, 68); // 7 - red grey
-		colors[8] = new Color(68, 119, 68); // 8 - green grey
-		colors[9] = new Color(0, 68, 119); // 9 - blue grey
-		colors[10] = new Color(255, 255, 255); // W - white
-		colors[11] = new Color(255, 255, 0); // Y - yellow
-		colors[12] = new Color(255, 96, 32); // O - orange
-		colors[13] = new Color(208, 0, 0); // R - red
-		colors[14] = new Color(0, 144, 0); // G - green
-		colors[15] = new Color(32, 64, 208); // B - blue
-		colors[16] = new Color(176, 176, 176); // L - light gray
-		colors[17] = new Color(80, 80, 80); // D - dark gray
-		colors[18] = new Color(255, 0, 255); // M - magenta
-		colors[19] = new Color(0, 255, 255); // C - cyan
-		colors[20] = new Color(255, 160, 192); // P - pink
-		colors[21] = new Color(32, 255, 16); // N - light green
-		colors[22] = new Color(0, 0, 0); // K - black
-		colors[23] = new Color(128, 128, 128); // . - gray
-		// create animation thread
-		animThread = new Thread(this, "Cube Animator");
-		animThread.start();
+		
+		// Create a new Animation Thread.
+		thread = new AnimationThread();
+		
 		// setup default configuration
 		String param = getParameter("config");
 		if (param != null) {
@@ -321,7 +228,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 		// setup initial cube position
 		param = getParameter("position");
-		vNorm(vMul(eyeY, eye, eyeX));
+		VectorAndMovementsMath.vNorm(VectorAndMovementsMath.vMul(eyeY, eye, eyeX));
 		if (param == null)
 			param = initialPosition;
 		double pi12 = Math.PI / 12;
@@ -331,24 +238,24 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 			case 'd':
 				angle = -angle;
 			case 'u':
-				vRotY(eye, angle);
-				vRotY(eyeX, angle);
+				VectorAndMovementsMath.vRotY(eye, angle);
+				VectorAndMovementsMath.vRotY(eyeX, angle);
 				break;
 			case 'f':
 				angle = -angle;
 			case 'b':
-				vRotZ(eye, angle);
-				vRotZ(eyeX, angle);
+				VectorAndMovementsMath.vRotZ(eye, angle);
+				VectorAndMovementsMath.vRotZ(eyeX, angle);
 				break;
 			case 'l':
 				angle = -angle;
 			case 'r':
-				vRotX(eye, angle);
-				vRotX(eyeX, angle);
+				VectorAndMovementsMath.vRotX(eye, angle);
+				VectorAndMovementsMath.vRotX(eyeX, angle);
 				break;
 			}
 		}
-		vNorm(vMul(eyeY, eye, eyeX)); // fix eyeY
+		VectorAndMovementsMath.vNorm(VectorAndMovementsMath.vMul(eyeY, eye, eyeX)); // fix eyeY
 		// setup quarter-turn speed and double-turn speed
 		speed = 0;
 		doubleSpeed = 0;
@@ -484,26 +391,15 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		bgColor2 = new Color(red / 2, green / 2, blue / 2);
 		curInfoText = -1;
 		if (demo)
-			startAnimation(-1);
-	} // init()
-
+			thread.startAnimation(-1);
+	} 
+	
 	public String getParameter(String name) {
 		String parameter = super.getParameter(name);
 		if (parameter == null)
 			return (String) config.get(name);
 		return parameter;
 	}
-
-	private static final int[] moveModes = { 0, 0, 0, 0, 0, 0, // UDFBLR
-			1, 1, 1, // ESM
-			3, 3, 3, 3, 3, 3, // XYZxyz
-			2, 2, 2, 2, 2, 2 // udfblr
-	};
-	private static final int[] moveCodes = { 0, 1, 2, 3, 4, 5, // UDFBLR
-			1, 2, 4, // ESM
-			5, 2, 0, 5, 2, 0, // XYZxyz
-			0, 1, 2, 3, 4, 5 // udfblr
-	};
 
 	private int[][] getMove(String sequence, boolean info) {
 		if (info) {
@@ -542,8 +438,6 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		move[num] = getMovePart(sequence.substring(lastPos), info);
 		return move;
 	}
-
-	private static final char[] modeChar = { 'm', 't', 'c', 's', 'a' };
 
 	private int[] getMovePart(String sequence, boolean info) {
 		int length = 0;
@@ -623,24 +517,6 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		return s;
 	}
 
-	private static final String[][][] turnSymbol = { { // "standard" notation
-			{ "U", "D", "F", "B", "L", "R" }, { "Um", "Dm", "Fm", "Bm", "Lm", "Rm" },
-			{ "Ut", "Dt", "Ft", "Bt", "Lt", "Rt" }, { "Uc", "Dc", "Fc", "Bc", "Lc", "Rc" },
-			{ "Us", "Ds", "Fs", "Bs", "Ls", "Rs" }, { "Ua", "Da", "Fa", "Ba", "La", "Ra" } },
-			{ // "reduced" notation
-					{ "U", "D", "F", "B", "L", "R" }, { "~E", "E", "S", "~S", "M", "~M" },
-					{ "u", "d", "f", "b", "l", "r" }, { "Z", "~Z", "Y", "~Y", "~X", "X" },
-					{ "Us", "Ds", "Fs", "Bs", "Ls", "Rs" }, { "Ua", "Da", "Fa", "Ba", "La", "Ra" } },
-			{ // "reduced" notation - swapped Y and Z
-					{ "U", "D", "F", "B", "L", "R" }, { "~E", "E", "S", "~S", "M", "~M" },
-					{ "u", "d", "f", "b", "l", "r" }, { "Y", "~Y", "Z", "~Z", "~X", "X" },
-					{ "Us", "Ds", "Fs", "Bs", "Ls", "Rs" }, { "Ua", "Da", "Fa", "Ba", "La", "Ra" } },
-			{ // another reduced notation
-					{ "U", "D", "F", "B", "L", "R" }, { "u", "d", "f", "b", "l", "r" },
-					{ "Uu", "Dd", "Ff", "Bb", "Ll", "Rr" }, { "QU", "QD", "QF", "QB", "QL", "QR" },
-					{ "UD'", "DU'", "FB'", "BF'", "LR'", "RL'" }, { "UD", "DU", "FB", "BF", "LR", "RL" } } };
-	private static final String[] modifierStrings = { "", "2", "'", "2'" };
-
 	private String turnText(int[] move, int pos) {
 		if (pos >= move.length)
 			return "";
@@ -654,68 +530,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		return s + modifierStrings[move[pos] % 4];
 	}
 
-	private static final String[] metricChar = { "", "q", "f", "s" };
-
-	private static int realMoveLength(int[] move) {
-		int length = 0;
-		for (int i = 0; i < move.length; i++)
-			if (move[i] < 1000)
-				length++;
-		return length;
-	}
-
-	private static int realMovePos(int[] move, int pos) {
-		int rpos = 0;
-		for (int i = 0; i < pos; i++)
-			if (move[i] < 1000)
-				rpos++;
-		return rpos;
-	}
-
-	private static int arrayMovePos(int[] move, int realPos) {
-		int pos = 0;
-		int rpos = 0;
-		while (true) {
-			while (pos < move.length && move[pos] >= 1000)
-				pos++;
-			if (rpos == realPos)
-				break;
-			if (pos < move.length) {
-				rpos++;
-				pos++;
-			}
-		}
-		return pos;
-	}
-
-	private int moveLength(int[] move, int end) {
-		int length = 0;
-		for (int i = 0; i < move.length && (i < end || end < 0); i++)
-			length += turnLength(move[i]);
-		return length;
-	}
-
-	private int turnLength(int turn) {
-		if (turn < 0 || turn >= 1000)
-			return 0;
-		int modifier = turn % 4;
-		int mode = turn / 4 % 6;
-		int n = 1;
-		switch (metric) {
-		case 1: // quarter-turn metric
-			if (modifier == 1 || modifier == 3)
-				n *= 2;
-		case 2: // face-turn metric
-			if (mode == 1 || mode == 4 || mode == 5)
-				n *= 2;
-		case 3: // slice-turn metric
-			if (mode == 3)
-				n = 0;
-		}
-		return n;
-	}
-
-	private void initInfoText(int[] move) {
+	public static void initInfoText(int[] move) {
 		if (move.length > 0 && move[0] >= 1000)
 			curInfoText = move[0] - 1000;
 		else
@@ -749,157 +564,9 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 	}
 
-	private Thread animThread = null; // thread to perform the animation
-
-	private void startAnimation(int mode) {
-		synchronized (animThread) {
-			stopAnimation();
-			if (!demo && (move.length == 0 || move[curMove].length == 0))
-				return;
-			if (demo && (demoMove.length == 0 || demoMove[0].length == 0))
-				return;
-			moveDir = 1;
-			moveOne = false;
-			moveAnimated = true;
-			switch (mode) {
-			case 0: // play forward
-				break;
-			case 1: // play backward
-				moveDir = -1;
-				break;
-			case 2: // step forward
-				moveOne = true;
-				break;
-			case 3: // step backward
-				moveDir = -1;
-				moveOne = true;
-				break;
-			case 4: // fast forward
-				moveAnimated = false;
-				break;
-			}
-			// System.err.println("start: notify");
-			animThread.notify();
-		}
-	}
-
-	public void stopAnimation() {
-		synchronized (animThread) {
-			restarted = true;
-			// System.err.println("stop: notify");
-			animThread.notify();
-			try {
-				// System.err.println("stop: wait");
-				animThread.wait();
-				// System.err.println("stop: run");
-			} catch (InterruptedException e) {
-				interrupted = true;
-			}
-			restarted = false;
-		}
-	}
-
-	public void run() {
-		synchronized (animThread) {
-			interrupted = false;
-			do {
-				if (restarted) {
-					// System.err.println("run: notify");
-					animThread.notify();
-				}
-				try {
-					// System.err.println("run: wait");
-					animThread.wait();
-					// System.err.println("run: run");
-				} catch (InterruptedException e) {
-					break;
-				}
-				if (restarted)
-					continue;
-				boolean restart = false;
-				animating = true;
-				drawButtons = true;
-				int[] mv = demo ? demoMove[0] : move[curMove];
-				if (moveDir > 0) {
-					if (movePos >= mv.length) {
-						movePos = 0;
-						initInfoText(mv);
-					}
-				} else {
-					curInfoText = -1;
-					if (movePos == 0)
-						movePos = mv.length;
-				}
-				while (true) {
-					if (moveDir < 0) {
-						if (movePos == 0)
-							break;
-						movePos--;
-					}
-					if (mv[movePos] == -1) {
-						repaint();
-						if (!moveOne)
-							sleep(33 * speed);
-					} else if (mv[movePos] >= 1000) {
-						curInfoText = moveDir > 0 ? mv[movePos] - 1000 : -1;
-					} else {
-						int num = mv[movePos] % 4 + 1;
-						int mode = mv[movePos] / 4 % 6;
-						boolean clockwise = num < 3;
-						if (num == 4)
-							num = 2;
-						if (moveDir < 0) {
-							clockwise = !clockwise;
-							num = 4 - num;
-						}
-						spin(mv[movePos] / 24, num, mode, clockwise, moveAnimated);
-						if (moveOne)
-							restart = true;
-					}
-					if (moveDir > 0) {
-						movePos++;
-						if (movePos < mv.length && mv[movePos] >= 1000) {
-							curInfoText = mv[movePos] - 1000;
-							movePos++;
-						}
-						if (movePos == mv.length) {
-							if (!demo)
-								break;
-							movePos = 0;
-							initInfoText(mv);
-							for (int i = 0; i < 6; i++)
-								for (int j = 0; j < 9; j++)
-									cube[i][j] = initialCube[i][j];
-						}
-					} else
-						curInfoText = -1;
-					if (interrupted || restarted || restart)
-						break;
-				}
-				animating = false;
-				drawButtons = true;
-				repaint();
-				if (demo) {
-					clear();
-					demo = false;
-				}
-			} while (!interrupted);
-		}
-		// System.err.println("Interrupted!");
-	} // run()
-
-	private void sleep(int time) {
-		synchronized (animThread) {
-			try {
-				animThread.wait(time);
-			} catch (InterruptedException e) {
-				interrupted = true;
-			}
-		}
-	}
-
-	private void clear() {
-		synchronized (animThread) {
+	
+	public static void clear() {
+		synchronized (thread) {
 			movePos = 0;
 			if (move.length > 0)
 				initInfoText(move[curMove]);
@@ -916,7 +583,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 	}
 
-	private void spin(int layer, int num, int mode, boolean clockwise, boolean animated) {
+	public static void spin(int layer, int num, int mode, boolean clockwise, boolean animated) {
 		twisting = false;
 		natural = true;
 		spinning = true;
@@ -940,8 +607,8 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 			double d = phis * phit / turnTime;
 			for (currentAngle = 0; currentAngle * phis < phit; currentAngle = d * (lTime - sTime)) {
 				repaint();
-				sleep(25);
-				if (interrupted || restarted)
+				thread.sleep(25);
+				if (thread.isInterupted() || thread.isRestarted())
 					break;
 				lTime = System.currentTimeMillis();
 			}
@@ -955,55 +622,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 			repaint();
 	}
 
-	// cube dimensions in number of facelets (mincol, maxcol, minrow, maxrow) for
-	// compact cube
-	private static final int[][][] cubeBlocks = { { { 0, 3 }, { 0, 3 } }, // U
-			{ { 0, 3 }, { 0, 3 } }, // D
-			{ { 0, 3 }, { 0, 3 } }, // F
-			{ { 0, 3 }, { 0, 3 } }, // B
-			{ { 0, 3 }, { 0, 3 } }, // L
-			{ { 0, 3 }, { 0, 3 } } // R
-	};
-	// subcube dimensions
-	private final int[][][] topBlocks = new int[6][][];
-	private final int[][][] midBlocks = new int[6][][];
-	private final int[][][] botBlocks = new int[6][][];
-	// all possible subcube dimensions for top and bottom layers
-	private static final int[][][] topBlockTable = { { { 0, 0 }, { 0, 0 } }, { { 0, 3 }, { 0, 3 } },
-			{ { 0, 3 }, { 0, 1 } }, { { 0, 1 }, { 0, 3 } }, { { 0, 3 }, { 2, 3 } }, { { 2, 3 }, { 0, 3 } } };
-	// subcube dimmensions for middle layers
-	private static final int[][][] midBlockTable = { { { 0, 0 }, { 0, 0 } }, { { 0, 3 }, { 1, 2 } },
-			{ { 1, 2 }, { 0, 3 } } };
-	// indices to topBlockTable[] and botBlockTable[] for each twistedLayer value
-	private static final int[][] topBlockFaceDim = {
-			// U D F B L R
-			{ 1, 0, 3, 3, 2, 3 }, // U
-			{ 0, 1, 5, 5, 4, 5 }, // D
-			{ 2, 3, 1, 0, 3, 2 }, // F
-			{ 4, 5, 0, 1, 5, 4 }, // B
-			{ 3, 2, 2, 4, 1, 0 }, // L
-			{ 5, 4, 4, 2, 0, 1 } // R
-	};
-	private static final int[][] midBlockFaceDim = {
-			// U D F B L R
-			{ 0, 0, 2, 2, 1, 2 }, // U
-			{ 0, 0, 2, 2, 1, 2 }, // D
-			{ 1, 2, 0, 0, 2, 1 }, // F
-			{ 1, 2, 0, 0, 2, 1 }, // B
-			{ 2, 1, 1, 1, 0, 0 }, // L
-			{ 2, 1, 1, 1, 0, 0 } // R
-	};
-	private static final int[][] botBlockFaceDim = {
-			// U D F B L R
-			{ 0, 1, 5, 5, 4, 5 }, // U
-			{ 1, 0, 3, 3, 2, 3 }, // D
-			{ 4, 5, 0, 1, 5, 4 }, // F
-			{ 2, 3, 1, 0, 3, 2 }, // B
-			{ 5, 4, 4, 2, 0, 1 }, // L
-			{ 3, 2, 2, 4, 1, 0 } // R
-	};
-
-	private void splitCube(int layer) {
+	private static void splitCube(int layer) {
 		for (int i = 0; i < 6; i++) { // for all faces
 			topBlocks[i] = topBlockTable[topBlockFaceDim[layer][i]];
 			botBlocks[i] = topBlockTable[botBlockFaceDim[layer][i]];
@@ -1012,7 +631,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		natural = false;
 	}
 
-	private void twistLayers(int[][] cube, int layer, int num, int mode) {
+	private static void twistLayers(int[][] cube, int layer, int num, int mode) {
 		switch (mode) {
 		case 3:
 			twistLayer(cube, layer ^ 1, num, false);
@@ -1032,30 +651,9 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 	}
 
-	// top facelet cycle
-	private static final int[] cycleOrder = { 0, 1, 2, 5, 8, 7, 6, 3 };
-	// side facelet cycle offsets
-	private static final int[] cycleFactors = { 1, 3, -1, -3, 1, 3, -1, -3 };
-	private static final int[] cycleOffsets = { 0, 2, 8, 6, 3, 1, 5, 7 };
-	// indices for faces of layers
-	private static final int[][] cycleLayerSides = { { 3, 3, 3, 0 }, // U: F=6-3k R=6-3k B=6-3k L=k
-			{ 2, 1, 1, 1 }, // D: L=8-k B=2+3k R=2+3k F=2+3k
-			{ 3, 3, 0, 0 }, // F: L=6-3k D=6-3k R=k U=k
-			{ 2, 1, 1, 2 }, // B: R=8-k D=2+3k L=2+3k U=8-k
-			{ 3, 2, 0, 0 }, // L: U=6-3k B=8-k D=k F=k
-			{ 2, 2, 0, 1 } // R: F=8-k D=8-k B=k U=2+3k
-	};
-	// indices for sides of center layers
-	private static final int[][] cycleCenters = { { 7, 7, 7, 4 }, // E'(U): F=7-3k R=7-3k B=7-3k L=3+k
-			{ 6, 5, 5, 5 }, // E (D): L=5-k B=1+3k R=1+3k F=1+3k
-			{ 7, 7, 4, 4 }, // S (F): L=7-3k D=7-3k R=3+k U=3+k
-			{ 6, 5, 5, 6 }, // S'(B): R=5-k D=1+3k L=1+3k U=5-k
-			{ 7, 6, 4, 4 }, // M (L): U=7-3k B=8-k D=3+k F=3+k
-			{ 6, 6, 4, 5 } // M'(R): F=5-k D=5-k B=3+k U=1+3k
-	};
-	private final int[] twistBuffer = new int[12];
+	private final static int[] twistBuffer = new int[12];
 
-	private void twistLayer(int[][] cube, int layer, int num, boolean middle) {
+	private static void twistLayer(int[][] cube, int layer, int num, boolean middle) {
 		if (!middle) {
 			// rotate top facelets
 			for (int i = 0; i < 8; i++) // to buffer
@@ -1094,8 +692,8 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 	private Graphics graphics = null;
 	private Image image = null;
 	// cube window size (applet window is resizable)
-	private int width;
-	private int height;
+	private static int width;
+	private static int height;
 	// last position of mouse (for dragging the cube)
 	private int lastX;
 	private int lastY;
@@ -1104,62 +702,12 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 	private int lastDragY;
 	// drag areas
 	private int dragAreas;
-	private final int[][] dragCornersX = new int[18][4];
-	private final int[][] dragCornersY = new int[18][4];
-	private final double[] dragDirsX = new double[18];
-	private final double[] dragDirsY = new double[18];
-	private static final int[][][] dragBlocks = { { { 0, 0 }, { 3, 0 }, { 3, 1 }, { 0, 1 } },
-			{ { 3, 0 }, { 3, 3 }, { 2, 3 }, { 2, 0 } }, { { 3, 3 }, { 0, 3 }, { 0, 2 }, { 3, 2 } },
-			{ { 0, 3 }, { 0, 0 }, { 1, 0 }, { 1, 3 } },
-			// center slices
-			{ { 0, 1 }, { 3, 1 }, { 3, 2 }, { 0, 2 } }, { { 2, 0 }, { 2, 3 }, { 1, 3 }, { 1, 0 } } };
-	private static final int[][] areaDirs = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
-	private static final int[][] twistDirs = { { 1, 1, 1, 1, 1, -1 }, // U
-			{ 1, 1, 1, 1, 1, -1 }, // D
-			{ 1, -1, 1, -1, 1, 1 }, // F
-			{ 1, -1, 1, -1, -1, 1 }, // B
-			{ -1, 1, -1, 1, -1, -1 }, // L
-			{ 1, -1, 1, -1, 1, 1 } // R
-	};
+
 	private int[] dragLayers = new int[18]; // which layers belongs to dragCorners
 	private int[] dragModes = new int[18]; // which layer modes dragCorners
 	// current drag directions
 	private double dragX;
 	private double dragY;
-	// various sign tables for computation of directions of rotations
-	private static final int[][][] rotCos = { { { 1, 0, 0 }, { 0, 0, 0 }, { 0, 0, 1 } }, // U-D
-			{ { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 0 } }, // F-B
-			{ { 0, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } } // L-R
-	};
-	private static final int[][][] rotSin = { { { 0, 0, 1 }, { 0, 0, 0 }, { -1, 0, 0 } }, // U-D
-			{ { 0, 1, 0 }, { -1, 0, 0 }, { 0, 0, 0 } }, // F-B
-			{ { 0, 0, 0 }, { 0, 0, 1 }, { 0, -1, 0 } } // L-R
-	};
-	private static final int[][][] rotVec = { { { 0, 0, 0 }, { 0, 1, 0 }, { 0, 0, 0 } }, // U-D
-			{ { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 1 } }, // F-B
-			{ { 1, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } } // L-R
-	};
-	private static final int[] rotSign = { 1, -1, 1, -1, 1, -1 }; // U, D, F, B, L, R
-	// temporary eye vectors for twisted sub-cube rotation
-	private final double[] tempEye = new double[3];
-	private final double[] tempEyeX = new double[3];
-	private final double[] tempEyeY = new double[3];
-	// temporary eye vectors for second twisted sub-cube rotation (antislice)
-	private final double[] tempEye2 = new double[3];
-	private final double[] tempEyeX2 = new double[3];
-	private final double[] tempEyeY2 = new double[3];
-	// temporary vectors to compute visibility in perspective projection
-	private final double[] perspEye = new double[3];
-	private final double[] perspEyeI = new double[3];
-	private final double[] perspNormal = new double[3];
-	// eye arrays to store various eyes for various modes
-	private final double[][] eyeArray = new double[3][];
-	private final double[][] eyeArrayX = new double[3][];
-	private final double[][] eyeArrayY = new double[3][];
-	private final int[][] eyeOrder = { { 1, 0, 0 }, { 0, 1, 0 }, { 1, 1, 0 }, { 1, 1, 1 }, { 1, 0, 1 }, { 1, 0, 2 } };
-	private final int[][][][] blockArray = new int[3][][][];
-	private final int[][] blockMode = { { 0, 2, 2 }, { 2, 1, 2 }, { 2, 2, 2 }, { 2, 2, 2 }, { 2, 2, 2 }, { 2, 2, 2 } };
-	private final int[][] drawOrder = { { 0, 1, 2 }, { 2, 1, 0 }, { 0, 2, 1 } };
 
 	public void paint(Graphics g) {
 		Dimension size = getSize(); // inefficient - Java 1.1
@@ -1182,7 +730,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 			if (natural) // compact cube
 				fixBlock(eye, eyeX, eyeY, cubeBlocks, 3); // draw cube and fill drag areas
 			else { // in twisted state
-				// compute top observer
+					// compute top observer
 				double cosA = Math.cos(originalAngle + currentAngle);
 				double sinA = Math.sin(originalAngle + currentAngle) * rotSign[twistedLayer];
 				for (int i = 0; i < 3; i++) {
@@ -1196,7 +744,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 								* (rotVec[axis][i][j] + rotCos[axis][i][j] * cosA + rotSin[axis][i][j] * sinA);
 					}
 				}
-				vMul(tempEyeY, tempEye, tempEyeX);
+				VectorAndMovementsMath.vMul(tempEyeY, tempEye, tempEyeX);
 				// compute bottom anti-observer
 				double cosB = Math.cos(originalAngle - currentAngle);
 				double sinB = Math.sin(originalAngle - currentAngle) * rotSign[twistedLayer];
@@ -1211,7 +759,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 								* (rotVec[axis][i][j] + rotCos[axis][i][j] * cosB + rotSin[axis][i][j] * sinB);
 					}
 				}
-				vMul(tempEyeY2, tempEye2, tempEyeX2);
+				VectorAndMovementsMath.vMul(tempEyeY2, tempEye2, tempEyeX2);
 				eyeArray[0] = eye;
 				eyeArrayX[0] = eyeX;
 				eyeArrayY[0] = eyeY;
@@ -1225,12 +773,18 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 				blockArray[1] = midBlocks;
 				blockArray[2] = botBlocks;
 				// perspective corrections
-				vSub(vScale(vCopy(perspEye, eye), 5.0 + persp),
-						vScale(vCopy(perspNormal, faceNormals[twistedLayer]), 1.0 / 3.0));
-				vSub(vScale(vCopy(perspEyeI, eye), 5.0 + persp),
-						vScale(vCopy(perspNormal, faceNormals[twistedLayer ^ 1]), 1.0 / 3.0));
-				double topProd = vProd(perspEye, faceNormals[twistedLayer]);
-				double botProd = vProd(perspEyeI, faceNormals[twistedLayer ^ 1]);
+				VectorAndMovementsMath
+						.vSub(VectorAndMovementsMath.vScale(VectorAndMovementsMath.vCopy(perspEye, eye), 5.0 + persp),
+								VectorAndMovementsMath.vScale(
+										VectorAndMovementsMath.vCopy(perspNormal, faceNormals[twistedLayer]),
+										1.0 / 3.0));
+				VectorAndMovementsMath
+						.vSub(VectorAndMovementsMath.vScale(VectorAndMovementsMath.vCopy(perspEyeI, eye), 5.0 + persp),
+								VectorAndMovementsMath.vScale(
+										VectorAndMovementsMath.vCopy(perspNormal, faceNormals[twistedLayer ^ 1]),
+										1.0 / 3.0));
+				double topProd = VectorAndMovementsMath.vProd(perspEye, faceNormals[twistedLayer]);
+				double botProd = VectorAndMovementsMath.vProd(perspEyeI, faceNormals[twistedLayer ^ 1]);
 				int orderMode;
 				if (topProd < 0 && botProd > 0) // top facing away
 					orderMode = 0;
@@ -1258,12 +812,12 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 					graphics.setColor(Color.black);
 					graphics.drawRect(0, height - progressHeight, width - 1, progressHeight - 1);
 					graphics.setColor(textColor);
-					int progress = (width - 2) * realMovePos(move[curMove], movePos) / realMoveLength(move[curMove]);
+					int progress = (width - 2) * VectorAndMovementsMath.realMovePos(move[curMove], movePos) / VectorAndMovementsMath.realMoveLength(move[curMove]);
 					graphics.fillRect(1, height - progressHeight + 1, progress, progressHeight - 2);
 					graphics.setColor(bgColor.darker());
 					graphics.fillRect(1 + progress, height - progressHeight + 1, width - 2 - progress,
 							progressHeight - 2);
-					String s = "" + moveLength(move[curMove], movePos) + "/" + moveLength(move[curMove], -1)
+					String s = "" + VectorAndMovementsMath.moveLength(move[curMove], movePos) + "/" + VectorAndMovementsMath.moveLength(move[curMove], -1)
 							+ metricChar[metric];
 					int w = graphics.getFontMetrics().stringWidth(s);
 					int x = width - w - 2;
@@ -1304,25 +858,13 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		paint(g);
 	}
 
-	// polygon co-ordinates to fill (cube faces or facelets)
-	private final int[] fillX = new int[4];
-	private final int[] fillY = new int[4];
-	// projected vertex co-ordinates (to screen)
-	private final double[] coordsX = new double[8];
-	private final double[] coordsY = new double[8];
-	private final double[][] cooX = new double[6][4];
-	private final double[][] cooY = new double[6][4];
-	private static final double[][] border = { { 0.10, 0.10 }, { 0.90, 0.10 }, { 0.90, 0.90 }, { 0.10, 0.90 } };
-	private static final int[][] factors = { { 0, 0 }, { 0, 1 }, { 1, 1 }, { 1, 0 } };
-	private final double[] tempNormal = new double[3];
-
 	private void fixBlock(double[] eye, double[] eyeX, double[] eyeY, int[][][] blocks, int mode) {
 		// project 3D co-ordinates into 2D screen ones
 		for (int i = 0; i < 8; i++) {
 			double min = width < height ? width : height - progressHeight;
-			double x = min / 3.7 * vProd(cornerCoords[i], eyeX) * scale;
-			double y = min / 3.7 * vProd(cornerCoords[i], eyeY) * scale;
-			double z = min / (5.0 + persp) * vProd(cornerCoords[i], eye) * scale;
+			double x = min / 3.7 * VectorAndMovementsMath.vProd(cornerCoords[i], eyeX) * scale;
+			double y = min / 3.7 * VectorAndMovementsMath.vProd(cornerCoords[i], eyeY) * scale;
+			double z = min / (5.0 + persp) * VectorAndMovementsMath.vProd(cornerCoords[i], eye) * scale;
 			x = x / (1 - z / min); // perspective transformation
 			y = y / (1 - z / min); // perspective transformation
 			coordsX[i] = width / 2.0 + x;
@@ -1342,13 +884,15 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 		if (hint) { // draw hint hiden facelets
 			for (int i = 0; i < 6; i++) { // all faces
-				vSub(vScale(vCopy(perspEye, eye), 5.0 + persp), faceNormals[i]); // perspective correction
-				if (vProd(perspEye, faceNormals[i]) < 0) { // draw only hiden faces
-					vScale(vCopy(tempNormal, faceNormals[i]), faceShift);
+				VectorAndMovementsMath.vSub(
+						VectorAndMovementsMath.vScale(VectorAndMovementsMath.vCopy(perspEye, eye), 5.0 + persp),
+						faceNormals[i]); // perspective correction
+				if (VectorAndMovementsMath.vProd(perspEye, faceNormals[i]) < 0) { // draw only hiden faces
+					VectorAndMovementsMath.vScale(VectorAndMovementsMath.vCopy(tempNormal, faceNormals[i]), faceShift);
 					double min = width < height ? width : height - progressHeight;
-					double x = min / 3.7 * vProd(tempNormal, eyeX);
-					double y = min / 3.7 * vProd(tempNormal, eyeY);
-					double z = min / (5.0 + persp) * vProd(tempNormal, eye);
+					double x = min / 3.7 * VectorAndMovementsMath.vProd(tempNormal, eyeX);
+					double y = min / 3.7 * VectorAndMovementsMath.vProd(tempNormal, eyeY);
+					double z = min / (5.0 + persp) * VectorAndMovementsMath.vProd(tempNormal, eye);
 					x = x / (1 - z / min); // perspective transformation
 					y = y / (1 - z / min); // perspective transformation
 					int sideW = blocks[i][0][1] - blocks[i][0][0];
@@ -1410,8 +954,10 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 		// draw all visible faces and get dragging regions
 		for (int i = 0; i < 6; i++) { // all faces
-			vSub(vScale(vCopy(perspEye, eye), 5.0 + persp), faceNormals[i]); // perspective correction
-			if (vProd(perspEye, faceNormals[i]) > 0) { // draw only faces towards us
+			VectorAndMovementsMath.vSub(
+					VectorAndMovementsMath.vScale(VectorAndMovementsMath.vCopy(perspEye, eye), 5.0 + persp),
+					faceNormals[i]); // perspective correction
+			if (VectorAndMovementsMath.vProd(perspEye, faceNormals[i]) > 0) { // draw only faces towards us
 				int sideW = blocks[i][0][1] - blocks[i][0][0];
 				int sideH = blocks[i][1][1] - blocks[i][1][0];
 				if (sideW > 0 && sideH > 0) { // this side is not only black
@@ -1492,7 +1038,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 			cornersX[corner] = width - cornersX[corner];
 	}
 
-	private void drawButtons(Graphics g) {
+	public static void drawButtons(Graphics g) {
 		if (buttonBar == 2) { // only clear (rewind) button
 			g.setColor(buttonBgColor);
 			g.fill3DRect(0, height - buttonHeight, buttonHeight, buttonHeight, buttonPressed != 0);
@@ -1514,7 +1060,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 	}
 
-	private void drawButton(Graphics g, int i, int x, int y) {
+	private static void drawButton(Graphics g, int i, int x, int y) {
 		g.setColor(Color.white);
 		switch (i) {
 		case 0: // rewind
@@ -1529,7 +1075,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 			drawArrow(g, x + 2, y, -1); // left
 			break;
 		case 3: // stop / mirror
-			if (animating)
+			if (thread.isAnimating())
 				drawRect(g, x - 3, y - 3, 7, 7);
 			else {
 				drawRect(g, x - 3, y - 2, 7, 5);
@@ -1591,7 +1137,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 	private void drawMoveText(Graphics g, int y) {
 		g.setClip(0, height - progressHeight - textHeight, width, textHeight);
 		g.setColor(Color.black);
-		int pos = movePos == 0 ? arrayMovePos(move[curMove], movePos) : movePos;
+		int pos = movePos == 0 ? VectorAndMovementsMath.arrayMovePos(move[curMove], movePos) : movePos;
 		String s1 = moveText(move[curMove], 0, pos);
 		String s2 = turnText(move[curMove], pos);
 		String s3 = moveText(move[curMove], pos + 1, move[curMove].length);
@@ -1649,29 +1195,29 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		if (buttonPressed >= 0) {
 			pushed = true;
 			if (buttonPressed == 3) {
-				if (!animating) // special feature
+				if (!thread.isAnimating()) // special feature
 					mirrored = !mirrored;
 				else
-					stopAnimation();
+					thread.stopAnimation();
 			} else if (buttonPressed == 0) { // clear everything to the initial setup
-				stopAnimation();
+				thread.stopAnimation();
 				clear();
 			} else if (buttonPressed == 7) { // next sequence
-				stopAnimation();
+				thread.stopAnimation();
 				clear();
 				curMove = curMove < move.length - 1 ? curMove + 1 : 0;
 			} else
-				startAnimation(buttonAction[buttonPressed]);
+				thread.startAnimation(buttonAction[buttonPressed]);
 			drawButtons = true;
 			repaint();
 		} else if (progressHeight > 0 && move.length > 0 && move[curMove].length > 0 && lastY >= height - progressHeight
 				&& lastY < height) {
-			stopAnimation();
-			int len = realMoveLength(move[curMove]);
+			thread.stopAnimation();
+			int len = VectorAndMovementsMath.realMoveLength(move[curMove]);
 			int pos = ((lastX - 1) * len * 2 / (width - 2) + 1) / 2;
 			pos = Math.max(0, Math.min(len, pos));
 			if (pos > 0)
-				pos = arrayMovePos(move[curMove], pos);
+				pos = VectorAndMovementsMath.arrayMovePos(move[curMove], pos);
 			if (pos > movePos)
 				doMove(cube, move[curMove], movePos, pos - movePos, false);
 			if (pos < movePos)
@@ -1682,7 +1228,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		} else {
 			if (mirrored)
 				lastDragX = lastX = width - lastX;
-			if (editable && !animating && (e.getModifiers() & InputEvent.BUTTON1_MASK) != 0
+			if (editable && !thread.isAnimating() && (e.getModifiers() & InputEvent.BUTTON1_MASK) != 0
 					&& (e.getModifiers() & InputEvent.SHIFT_MASK) == 0)
 				toTwist = true;
 		}
@@ -1714,18 +1260,16 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 	}
 
-	private final double[] eyeD = new double[3];
-
 	public void mouseDragged(MouseEvent e) {
 		if (pushed)
 			return;
 		if (dragging) {
-			stopAnimation();
-			int len = realMoveLength(move[curMove]);
+			thread.stopAnimation();
+			int len = VectorAndMovementsMath.realMoveLength(move[curMove]);
 			int pos = ((e.getX() - 1) * len * 2 / (width - 2) + 1) / 2;
 			pos = Math.max(0, Math.min(len, pos));
 			if (pos > 0)
-				pos = arrayMovePos(move[curMove], pos);
+				pos = VectorAndMovementsMath.arrayMovePos(move[curMove], pos);
 			if (pos > movePos)
 				doMove(cube, move[curMove], movePos, pos - movePos, false);
 			if (pos < movePos)
@@ -1738,7 +1282,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		int y = e.getY();
 		int dx = x - lastX;
 		int dy = y - lastY;
-		if (editable && toTwist && !twisting && !animating) { // we do not twist but we can
+		if (editable && toTwist && !twisting && !thread.isAnimating()) { // we do not twist but we can
 			lastDragX = x;
 			lastDragY = y;
 			for (int i = 0; i < dragAreas; i++) { // check if inside a drag area
@@ -1771,11 +1315,13 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		}
 		dx = x - lastX;
 		dy = y - lastY;
-		if (!twisting || animating) { // whole cube rotation
-			vNorm(vAdd(eye, vScale(vCopy(eyeD, eyeX), dx * -0.016)));
-			vNorm(vMul(eyeX, eyeY, eye));
-			vNorm(vAdd(eye, vScale(vCopy(eyeD, eyeY), dy * 0.016)));
-			vNorm(vMul(eyeY, eye, eyeX));
+		if (!twisting || thread.isAnimating()) { // whole cube rotation
+			VectorAndMovementsMath.vNorm(VectorAndMovementsMath.vAdd(eye,
+					VectorAndMovementsMath.vScale(VectorAndMovementsMath.vCopy(eyeD, eyeX), dx * -0.016)));
+			VectorAndMovementsMath.vNorm(VectorAndMovementsMath.vMul(eyeX, eyeY, eye));
+			VectorAndMovementsMath.vNorm(VectorAndMovementsMath.vAdd(eye,
+					VectorAndMovementsMath.vScale(VectorAndMovementsMath.vCopy(eyeD, eyeY), dy * 0.016)));
+			VectorAndMovementsMath.vNorm(VectorAndMovementsMath.vMul(eyeY, eye, eyeX));
 			lastX = x;
 			lastY = y;
 		} else {
@@ -1786,9 +1332,6 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 		repaint();
 	}
 
-	// status bar help strings
-	private static final String[] buttonDescriptions = { "Clear to the initial state", "Show the previous step",
-			"Play backward", "Stop", "Play", "Show the next step", "Go to the end", "Next sequence" };
 	private String buttonDescription = "";
 
 	public void mouseMoved(MouseEvent e) {
@@ -1800,7 +1343,7 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 				buttonPressed = selectButton(x, y);
 				if (buttonPressed >= 0)
 					description = buttonDescriptions[buttonPressed];
-				if (buttonPressed == 3 && !animating)
+				if (buttonPressed == 3 && !thread.isAnimating())
 					description = "Mirror the cube view";
 			} else if (progressHeight > 0 && move.length > 0 && move[curMove].length > 0 && y >= height - progressHeight
 					&& y < height) {
@@ -1820,84 +1363,5 @@ public final class AnimCube extends Applet implements Runnable, MouseListener, M
 	}
 
 	public void mouseExited(MouseEvent e) {
-	}
-
-	// Various useful vector functions
-
-	private static double[] vCopy(double[] vector, double[] srcVec) {
-		vector[0] = srcVec[0];
-		vector[1] = srcVec[1];
-		vector[2] = srcVec[2];
-		return vector;
-	}
-
-	private static double[] vNorm(double[] vector) {
-		double length = Math.sqrt(vProd(vector, vector));
-		vector[0] /= length;
-		vector[1] /= length;
-		vector[2] /= length;
-		return vector;
-	}
-
-	private static double[] vScale(double[] vector, double value) {
-		vector[0] *= value;
-		vector[1] *= value;
-		vector[2] *= value;
-		return vector;
-	}
-
-	private static double vProd(double[] vec1, double[] vec2) {
-		return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
-	}
-
-	private static double[] vAdd(double[] vector, double[] srcVec) {
-		vector[0] += srcVec[0];
-		vector[1] += srcVec[1];
-		vector[2] += srcVec[2];
-		return vector;
-	}
-
-	private static double[] vSub(double[] vector, double[] srcVec) {
-		vector[0] -= srcVec[0];
-		vector[1] -= srcVec[1];
-		vector[2] -= srcVec[2];
-		return vector;
-	}
-
-	private static double[] vMul(double[] vector, double[] vec1, double[] vec2) {
-		vector[0] = vec1[1] * vec2[2] - vec1[2] * vec2[1];
-		vector[1] = vec1[2] * vec2[0] - vec1[0] * vec2[2];
-		vector[2] = vec1[0] * vec2[1] - vec1[1] * vec2[0];
-		return vector;
-	}
-
-	private static double[] vRotX(double[] vector, double angle) {
-		double sinA = Math.sin(angle);
-		double cosA = Math.cos(angle);
-		double y = vector[1] * cosA - vector[2] * sinA;
-		double z = vector[1] * sinA + vector[2] * cosA;
-		vector[1] = y;
-		vector[2] = z;
-		return vector;
-	}
-
-	private static double[] vRotY(double[] vector, double angle) {
-		double sinA = Math.sin(angle);
-		double cosA = Math.cos(angle);
-		double x = vector[0] * cosA - vector[2] * sinA;
-		double z = vector[0] * sinA + vector[2] * cosA;
-		vector[0] = x;
-		vector[2] = z;
-		return vector;
-	}
-
-	private static double[] vRotZ(double[] vector, double angle) {
-		double sinA = Math.sin(angle);
-		double cosA = Math.cos(angle);
-		double x = vector[0] * cosA - vector[1] * sinA;
-		double y = vector[0] * sinA + vector[1] * cosA;
-		vector[0] = x;
-		vector[1] = y;
-		return vector;
 	}
 }
