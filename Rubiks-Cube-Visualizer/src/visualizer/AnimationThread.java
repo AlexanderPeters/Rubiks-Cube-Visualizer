@@ -1,6 +1,9 @@
 package visualizer;
 
-public class AnimationThread implements Constants, Runnable {
+import java.applet.Applet;
+
+@SuppressWarnings("serial")
+public class AnimationThread extends Applet implements Constants, Runnable {
 	private Thread animThread; // thread to perform the animation
 	private boolean restarted = false; // animation was stopped
 	private boolean interrupted = false; // thread was interrupted
@@ -95,7 +98,7 @@ public class AnimationThread implements Constants, Runnable {
 						AnimCube.movePos--;
 					}
 					if (mv[AnimCube.movePos] == -1) {
-						AnimCube.repaint();
+						repaint();
 						if (!AnimCube.moveOne)
 							sleep(33 * AnimCube.speed);
 					} else if (mv[AnimCube.movePos] >= 1000) {
@@ -136,7 +139,7 @@ public class AnimationThread implements Constants, Runnable {
 				}
 				animating = false;
 				AnimCube.drawButtons = true;
-				AnimCube.repaint();
+				repaint();
 				if (AnimCube.demo) {
 					AnimCube.clear();
 					AnimCube.demo = false;
@@ -166,4 +169,6 @@ public class AnimationThread implements Constants, Runnable {
 	public boolean isAnimating() {
 		return animating;
 	}
+	
+	
 }
